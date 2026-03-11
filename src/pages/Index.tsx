@@ -86,15 +86,13 @@ function initializeScripts() {
   // Resize handler
   initResizeHandler();
 
-  // Re-attach onclick handlers for product cards since innerHTML strips them
-  document.querySelectorAll('.product-card[onclick]').forEach((card) => {
-    const onclickAttr = card.getAttribute('onclick');
-    if (onclickAttr) {
-      card.removeAttribute('onclick');
-      card.addEventListener('click', () => {
-        // eslint-disable-next-line no-eval
-        eval(onclickAttr);
-      });
+  // Re-process onclick attributes that may have been stripped
+  // (innerHTML preserves onclick attrs in most browsers, but just in case)
+  document.querySelectorAll('[onclick]').forEach((el) => {
+    const onclickVal = el.getAttribute('onclick');
+    if (onclickVal) {
+      const element = el as HTMLElement;
+      element.style.cursor = 'pointer';
     }
   });
 }
