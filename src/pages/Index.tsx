@@ -61,6 +61,10 @@ const Index = () => {
 
 // All the original JS logic ported to work with React
 function initializeScripts() {
+  // Make functions globally available for onclick attributes
+  (window as any).showDetails = showDetails;
+  (window as any).goBackStep = goBackStep;
+
   // Mobile nav toggle
   initNavToggle();
   // Contact form
@@ -81,6 +85,18 @@ function initializeScripts() {
   buildPowerAmplifiers();
   // Resize handler
   initResizeHandler();
+
+  // Re-attach onclick handlers for product cards since innerHTML strips them
+  document.querySelectorAll('.product-card[onclick]').forEach((card) => {
+    const onclickAttr = card.getAttribute('onclick');
+    if (onclickAttr) {
+      card.removeAttribute('onclick');
+      card.addEventListener('click', () => {
+        // eslint-disable-next-line no-eval
+        eval(onclickAttr);
+      });
+    }
+  });
 }
 
 let modalStack: HTMLElement[] = [];
