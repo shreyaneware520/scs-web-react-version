@@ -85,6 +85,8 @@ function initializeScripts() {
   buildPowerAmplifiers();
   // Resize handler
   initResizeHandler();
+  // Load chatbot widget
+  loadChatbotWidget();
 
   // Re-process onclick attributes that may have been stripped
   // (innerHTML preserves onclick attrs in most browsers, but just in case)
@@ -728,6 +730,25 @@ function buildPowerAmplifiers() {
       }
     });
   });
+}
+
+function loadChatbotWidget() {
+  // Set chatbot config
+  (window as any).ChatbotConfig = {
+    backendUrl: 'http://127.0.0.1:5000',
+    primaryColor: '#667eea',
+    secondaryColor: '#764ba2',
+    position: 'bottom-right',
+    botName: 'SERA',
+    autoOpen: false,
+    requireName: false,
+    showUpload: true
+  };
+
+  // Load chatbot widget script
+  const script = document.createElement('script');
+  script.src = '/chatbot-widget.js';
+  document.body.appendChild(script);
 }
 
 export default Index;
