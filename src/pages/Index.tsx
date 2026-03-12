@@ -85,6 +85,8 @@ function initializeScripts() {
   buildPowerAmplifiers();
   // Resize handler
   initResizeHandler();
+  // Load chatbot widget
+  loadChatbotWidget();
 
   // Re-process onclick attributes that may have been stripped
   // (innerHTML preserves onclick attrs in most browsers, but just in case)
