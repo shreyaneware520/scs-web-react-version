@@ -733,16 +733,20 @@ function buildPowerAmplifiers() {
 }
 
 function loadChatbotWidget() {
-  // Set chatbot config
+  // Set chatbot config — point at our Lovable Cloud edge function
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   (window as any).ChatbotConfig = {
-    backendUrl: 'http://127.0.0.1:5000',
+    chatUrl: `${supabaseUrl}/functions/v1/chat`,
+    chatAuthToken: supabaseKey,
+    backendUrl: '',
     primaryColor: '#667eea',
     secondaryColor: '#764ba2',
     position: 'bottom-right',
     botName: 'SERA',
     autoOpen: false,
     requireName: false,
-    showUpload: true
+    showUpload: true,
   };
 
   // Load chatbot widget script
