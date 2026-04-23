@@ -551,6 +551,14 @@ function initSearchHandlers() {
   createSearchHandler("opticsSearch", "opticsModal");
   createSearchHandler("optoSearch", "optoModal");
   createSearchHandler("opticalTestSearch", "opticalTestModal");
+
+  // RF & Microwave sub-modals
+  createSearchHandler("hornAntennasSearch", "hornAntennasModal");
+  createSearchHandler("antiJammingSearch", "antiJammingAntennaModal");
+  createSearchHandler("lnaSearch", "lnaModal");
+  createSearchHandler("trComponentsSearch", "trComponentsModal");
+  createSearchHandler("rfSystemsSearch", "rfSystemsModal");
+  createSearchHandler("passiveComponentsSearch", "passiveComponentsModal");
 }
 
 function initResizeHandler() {
