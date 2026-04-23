@@ -1656,3 +1656,5 @@ nav.open ul{ display:flex !important; }
   .whatsapp-fab { right: 12px; bottom: 92px; width:45px; height:45px; padding:0; }
   .whatsapp-fab .whatsapp-img { width: 90%; height: 90%; }
 }
+/* Hide WhatsApp button when chatbot window is open to avoid overlap */
+body:has(.chatbot-window.open) .whatsapp-fab { display: none !important; }
