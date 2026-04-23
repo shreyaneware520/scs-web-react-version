@@ -513,9 +513,12 @@ function initSearchHandlers() {
 
     input.addEventListener("keyup", function () {
       const q = input.value.toLowerCase();
-      document
-        .querySelectorAll("#" + modalId + " .accordion-item")
-        .forEach((item) => {
+      const items = document.querySelectorAll(
+        "#" + modalId + " .accordion-item",
+      );
+      const useItems = items.length > 0;
+      if (useItems) {
+        items.forEach((item) => {
           const el = item as HTMLElement;
           const itemText = el.textContent?.toLowerCase() || "";
           const itemTitle =
@@ -523,21 +526,30 @@ function initSearchHandlers() {
           el.style.display =
             itemText.includes(q) || itemTitle.includes(q) ? "" : "none";
         });
+      }
 
       document
         .querySelectorAll("#" + modalId + " .accordion-section")
         .forEach((section) => {
+          const sectionEl = section as HTMLElement;
           const content = section.querySelector(
-            ".accordion-content"
+            ".accordion-content",
           ) as HTMLElement;
-          const visible = Array.from(
-            section.querySelectorAll(".accordion-item")
-          ).some((i) => (i as HTMLElement).style.display !== "none");
           const toggle = section.querySelector(".accordion-toggle");
-          if (visible) {
+          let visible: boolean;
+          if (useItems) {
+            visible = Array.from(
+              section.querySelectorAll(".accordion-item"),
+            ).some((i) => (i as HTMLElement).style.display !== "none");
+          } else {
+            const text = sectionEl.textContent?.toLowerCase() || "";
+            visible = q === "" || text.includes(q);
+          }
+          sectionEl.style.display = visible ? "" : "none";
+          if (visible && q !== "") {
             toggle?.classList.add("open");
             if (content) content.style.maxHeight = content.scrollHeight + "px";
-          } else {
+          } else if (!visible) {
             toggle?.classList.remove("open");
             if (content) content.style.maxHeight = "";
           }
@@ -551,6 +563,14 @@ function initSearchHandlers() {
   createSearchHandler("opticsSearch", "opticsModal");
   createSearchHandler("optoSearch", "optoModal");
   createSearchHandler("opticalTestSearch", "opticalTestModal");
+
+  // RF & Microwave sub-modals
+  createSearchHandler("hornAntennasSearch", "hornAntennasModal");
+  createSearchHandler("antiJammingSearch", "antiJammingAntennaModal");
+  createSearchHandler("lnaSearch", "lnaModal");
+  createSearchHandler("trComponentsSearch", "trComponentsModal");
+  createSearchHandler("rfSystemsSearch", "rfSystemsModal");
+  createSearchHandler("passiveComponentsSearch", "passiveComponentsModal");
 }
 
 function initResizeHandler() {
@@ -733,16 +753,20 @@ function buildPowerAmplifiers() {
 }
 
 function loadChatbotWidget() {
-  // Set chatbot config
+  // Set chatbot config — point at our Lovable Cloud edge function
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   (window as any).ChatbotConfig = {
-    backendUrl: 'http://127.0.0.1:5000',
+    chatUrl: `${supabaseUrl}/functions/v1/chat`,
+    chatAuthToken: supabaseKey,
+    backendUrl: '',
     primaryColor: '#667eea',
     secondaryColor: '#764ba2',
     position: 'bottom-right',
     botName: 'SERA',
     autoOpen: false,
     requireName: false,
-    showUpload: true
+    showUpload: true,
   };
 
   // Load chatbot widget script
