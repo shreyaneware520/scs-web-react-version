@@ -513,9 +513,12 @@ function initSearchHandlers() {
 
     input.addEventListener("keyup", function () {
       const q = input.value.toLowerCase();
-      document
-        .querySelectorAll("#" + modalId + " .accordion-item")
-        .forEach((item) => {
+      const items = document.querySelectorAll(
+        "#" + modalId + " .accordion-item",
+      );
+      const useItems = items.length > 0;
+      if (useItems) {
+        items.forEach((item) => {
           const el = item as HTMLElement;
           const itemText = el.textContent?.toLowerCase() || "";
           const itemTitle =
@@ -523,21 +526,30 @@ function initSearchHandlers() {
           el.style.display =
             itemText.includes(q) || itemTitle.includes(q) ? "" : "none";
         });
+      }
 
       document
         .querySelectorAll("#" + modalId + " .accordion-section")
         .forEach((section) => {
+          const sectionEl = section as HTMLElement;
           const content = section.querySelector(
-            ".accordion-content"
+            ".accordion-content",
           ) as HTMLElement;
-          const visible = Array.from(
-            section.querySelectorAll(".accordion-item")
-          ).some((i) => (i as HTMLElement).style.display !== "none");
           const toggle = section.querySelector(".accordion-toggle");
-          if (visible) {
+          let visible: boolean;
+          if (useItems) {
+            visible = Array.from(
+              section.querySelectorAll(".accordion-item"),
+            ).some((i) => (i as HTMLElement).style.display !== "none");
+          } else {
+            const text = sectionEl.textContent?.toLowerCase() || "";
+            visible = q === "" || text.includes(q);
+          }
+          sectionEl.style.display = visible ? "" : "none";
+          if (visible && q !== "") {
             toggle?.classList.add("open");
             if (content) content.style.maxHeight = content.scrollHeight + "px";
-          } else {
+          } else if (!visible) {
             toggle?.classList.remove("open");
             if (content) content.style.maxHeight = "";
           }
