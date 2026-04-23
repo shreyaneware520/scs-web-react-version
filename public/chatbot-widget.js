@@ -1201,11 +1201,15 @@
         showTypingIndicator();
         
         try {
-            const response = await fetch(`${config.backendUrl}/api/chat`, {
+            const chatUrl = config.chatUrl || `${config.backendUrl}/api/chat`;
+            const headers = { 'Content-Type': 'application/json' };
+            if (config.chatAuthToken) {
+                headers['Authorization'] = `Bearer ${config.chatAuthToken}`;
+                headers['apikey'] = config.chatAuthToken;
+            }
+            const response = await fetch(chatUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify({ 
                     message: message,
                     userData: state.userData 
@@ -1345,6 +1349,7 @@
     
     // Auto-ping to keep backend alive
     function startAutoPing() {
+        if (config.chatUrl) { return; }
         if (!config.backendUrl || config.backendUrl.includes('your-render-app')) {
             return;
         }
