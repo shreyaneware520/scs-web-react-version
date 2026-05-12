@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import opticsPhotonicsImage from "../assests/optics-photonics.jpg";
+import thzImage from "../assests/thz.jpg";
 
 const Index = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,8 @@ function initializeScripts() {
   initSearchHandlers();
   // Build power amplifiers
   buildPowerAmplifiers();
+  // Expertise card model content
+  initExpertiseModelContent();
   // Resize handler
   initResizeHandler();
   // Load chatbot widget
@@ -190,80 +194,81 @@ function goBackStep() {
 }
 
 function initContactForm() {
-  const form = document.querySelector(".contact-form") as HTMLFormElement;
-  if (!form) return;
+  const forms = document.querySelectorAll(".contact-form");
+  if (!forms.length) return;
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+  forms.forEach((formEl) => {
+    const form = formEl as HTMLFormElement;
 
-    const name = document.getElementById("name") as HTMLInputElement;
-    const email = document.getElementById("email") as HTMLInputElement;
-    const organization = document.getElementById(
-      "organization"
-    ) as HTMLInputElement;
-    const query = document.getElementById("query") as HTMLTextAreaElement;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
 
-    if (!name?.value.trim()) {
-      showFormFeedback("Please enter your name", "error");
-      name?.focus();
-      return;
-    }
-    if (!email?.value.trim()) {
-      showFormFeedback("Please enter your email", "error");
-      email?.focus();
-      return;
-    }
-    if (!isValidEmail(email.value)) {
-      showFormFeedback("Please enter a valid email address", "error");
-      email?.focus();
-      return;
-    }
-    if (!query?.value.trim()) {
-      showFormFeedback("Please enter your query", "error");
-      query?.focus();
-      return;
-    }
+      const name = form.querySelector('input[name="name"]') as HTMLInputElement;
+      const email = form.querySelector('input[name="email"]') as HTMLInputElement;
+      const organization = form.querySelector(
+        'input[name="organization"]'
+      ) as HTMLInputElement;
+      const query = form.querySelector('textarea[name="query"]') as HTMLTextAreaElement;
 
-    const submitBtn = form.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = "Sending...";
-    submitBtn.disabled = true;
+      if (!name?.value.trim()) return showFormFeedback(form, "Please enter your name", "error");
+      if (!email?.value.trim()) return showFormFeedback(form, "Please enter your email", "error");
+      if (!isValidEmail(email.value)) return showFormFeedback(form, "Please enter a valid email address", "error");
+      if (!query?.value.trim()) return showFormFeedback(form, "Please enter your query", "error");
 
-    const formData = new FormData();
-    formData.append("name", name.value.trim());
-    formData.append("email", email.value.trim());
-    formData.append("organization", organization?.value.trim() || "Not provided");
-    formData.append("message", query.value.trim());
+      const submitBtn = form.querySelector(
+        'button[type="submit"]'
+      ) as HTMLButtonElement;
+      if (!submitBtn) return;
 
-    fetch("https://formspree.io/f/meoylggd", {
-      method: "POST",
-      body: formData,
-      headers: { Accept: "application/json" },
-    })
-      .then((response) => {
-        if (response.ok) {
+      const originalText = submitBtn.textContent || "Send Message";
+      submitBtn.textContent = "Sending...";
+      submitBtn.disabled = true;
+
+      const payload = {
+        name: name.value.trim(),
+        email: email.value.trim(),
+        organization: organization?.value.trim() || "",
+        query: query.value.trim(),
+      };
+
+      fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+        .then(async (response) => {
+          if (response.ok) {
+            showFormFeedback(
+              form,
+              "Thank you! Your message has been sent successfully.",
+              "success"
+            );
+            form.reset();
+          } else {
+            const data = await response.json().catch(() => null);
+            throw new Error(data?.message || "Submission failed");
+          }
+        })
+        .catch((error) => {
           showFormFeedback(
-            "Thank you! Your message has been sent successfully. We will get back to you soon.",
-            "success"
+            form,
+            error instanceof Error
+              ? error.message
+              : "Unable to send your message right now. Please try again in a moment.",
+            "error"
           );
-          form.reset();
-        } else {
-          throw new Error("Email service error");
-        }
-      })
-      .catch(() => {
-        showFormFeedback(
-          "Thank you! Your message has been sent successfully. We will get back to you soon.",
-          "success"
-        );
-        form.reset();
-      })
-      .finally(() => {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-      });
+        })
+        .finally(() => {
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+          setTimeout(() => {
+            clearFormFeedback(form);
+          }, 5000);
+        });
+    });
   });
 }
 
@@ -271,12 +276,8 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function showFormFeedback(message: string, type: string) {
-  const form = document.querySelector(".contact-form");
-  if (!form) return;
-
-  const existingFeedback = form.querySelector(".form-feedback");
-  if (existingFeedback) existingFeedback.remove();
+function showFormFeedback(form: HTMLFormElement, message: string, type: string) {
+  clearFormFeedback(form);
 
   const feedback = document.createElement("div");
   feedback.className = `form-feedback form-feedback-${type}`;
@@ -303,11 +304,18 @@ function showFormFeedback(message: string, type: string) {
 
   form.insertBefore(feedback, form.firstChild);
 
-  if (type === "success") {
-    setTimeout(() => {
-      if (feedback.parentElement) feedback.remove();
-    }, 4000);
+}
+
+function clearFormFeedback(form?: HTMLFormElement) {
+  if (form) {
+    const existingFeedback = form.querySelector(".form-feedback");
+    if (existingFeedback) existingFeedback.remove();
+    return;
   }
+
+  document.querySelectorAll(".contact-form .form-feedback").forEach((feedback) => {
+    feedback.remove();
+  });
 }
 
 function initChatbotEnquiryForm() {
@@ -477,6 +485,202 @@ function initModalHandlers() {
           const next = openToggle.nextElementSibling as HTMLElement;
           if (next) next.style.maxHeight = "";
         });
+    }
+  });
+}
+
+function initExpertiseModelContent() {
+  const expertiseContent = {
+    "Semiconductor Test and Assembly": {
+      heading: "Semiconductor Test and Assembly",
+      cards: [
+        {
+          title: "Probe Station",
+          image: "assets/probe-station",
+        },
+        {
+          title: "Loadpull System",
+          image: "assets/loadpull",
+        },
+        {
+          title: "Semiconductor Skill Training Lab and Development",
+          image: "assets/semiconductor-training",
+        },
+        {
+          title: "Different Types of Microscope",
+          image: "assets/microscope",
+        },
+      ],
+    },
+    "RF & Microwaves/SiC": {
+      heading: "RF & Microwaves/SiC",
+      cards: [
+        {
+          title: "Power Amplifier",
+          image: "assets/Power Amplifier.webp",
+        },
+        {
+          title: "Low Noise Amplifier",
+          image: "assets/Low Noise Amplifier.jpeg",
+        },
+        {
+          title: "Anti Jamming Antenna",
+          image: "assets/Anti Jamming Antenna.jpeg",
+        },
+        {
+          title: "T/R Components, Up/Down Converters",
+          image: "assets/up down converter.png",
+        },
+        {
+          title: "Frequency Sources, Passive Components and Antennas",
+          image: "assets/Passive Components.jpg",
+        },
+      ],
+    },
+    Quantum: {
+      heading: "Quantum",
+      cards: [
+        {
+          title: "Ultra-stable cavity",
+          image: "assets/Ultra-stable cavity.jpeg",
+        },
+        {
+          title: "Air chamber",
+          image: "assets/Air chamber.webp",
+        },
+        {
+          title: "Ultra-high vacuum scientific chamber",
+          image: "assets/Ultra-high vacuum scientific chamber.jpg",
+        },
+      ],
+    },
+    "THz/Optics": {
+      heading: "THz/Optics",
+      cards: [
+        {
+          title: "Optics/Photonics/THz Laser Components",
+          image: opticsPhotonicsImage,
+        },
+        {
+          title: "Advanced Terahertz TDS Laser Platforms",
+          image: thzImage,
+        },
+      ],
+    },
+    "GaN Technology": {
+      heading: "GaN Technology",
+      cards: [
+        {
+          title: "GaN Epitaxial (Epi) Design",
+          image: "assets/GaN Epitaxial (Epi) Design.jpeg",
+        },
+        {
+          title: "Processed GaN Wafer",
+          image: "assets/Processed GaN Wafer.jpeg",
+        },
+        {
+          title: "Fabricated IC",
+          image: "assets/Fabricated IC.jpeg",
+        },
+        {
+          title: "Packaged Chip",
+          image: "assets/Packaged Chip.jpg",
+        },
+        {
+          title: "RF Power Module",
+          image: "assets/RF Power Module.jpg",
+        },
+      ],
+    },
+  } as const;
+
+  const overlay = document.createElement("div");
+  overlay.className = "model-content-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.innerHTML = `
+    <section class="model-content" role="dialog" aria-modal="true" aria-labelledby="expertiseModelTitle">
+      <button type="button" class="model-content-close" aria-label="Close">x</button>
+      <h2 id="expertiseModelTitle"></h2>
+      <div class="model-product-grid"></div>
+    </section>
+  `;
+  document.body.appendChild(overlay);
+
+  const modelContent = overlay.querySelector(".model-content") as HTMLElement;
+  const titleElement = overlay.querySelector(
+    "#expertiseModelTitle",
+  ) as HTMLElement;
+  const grid = overlay.querySelector(".model-product-grid") as HTMLElement;
+  const closeButton = overlay.querySelector(
+    ".model-content-close",
+  ) as HTMLButtonElement;
+
+  const openModelContent = (headingText: keyof typeof expertiseContent) => {
+    const content = expertiseContent[headingText];
+    titleElement.innerHTML = content.heading;
+    modelContent.dataset.expertise = headingText;
+    grid.innerHTML = "";
+
+    content.cards.forEach((item) => {
+      const card = document.createElement("div");
+      card.className = "product-card model-product-card";
+
+      const image = document.createElement("img");
+      image.src = item.image;
+      image.alt = item.title;
+      image.loading = "lazy";
+
+      const heading = document.createElement("h3");
+      heading.textContent = item.title;
+
+      card.appendChild(image);
+      card.appendChild(heading);
+      grid.appendChild(card);
+    });
+
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.classList.add("model-content-open");
+    closeButton.focus({ preventScroll: true });
+  };
+
+  const closeModelContent = () => {
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden", "true");
+    delete modelContent.dataset.expertise;
+    document.body.classList.remove("model-content-open");
+  };
+
+  document.querySelectorAll(".expertise-card-new").forEach((card) => {
+    const title = card.querySelector(".ec-title")?.textContent?.trim();
+    if (!title || !(title in expertiseContent)) return;
+
+    const clickableCard = card as HTMLElement;
+    clickableCard.setAttribute("tabindex", "0");
+    clickableCard.setAttribute("role", "button");
+    clickableCard.setAttribute("aria-haspopup", "dialog");
+    clickableCard.style.cursor = "pointer";
+
+    clickableCard.addEventListener("click", () => {
+      openModelContent(title as keyof typeof expertiseContent);
+    });
+
+    clickableCard.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openModelContent(title as keyof typeof expertiseContent);
+      }
+    });
+  });
+
+  closeButton.addEventListener("click", closeModelContent);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeModelContent();
+  });
+  modelContent.addEventListener("click", (event) => event.stopPropagation());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && overlay.classList.contains("show")) {
+      closeModelContent();
     }
   });
 }
