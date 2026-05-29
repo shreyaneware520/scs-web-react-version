@@ -1,13 +1,28 @@
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import nodemailer from "nodemailer";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
 
 const app = express();
 const PORT = Number(process.env.MAIL_SERVER_PORT || 8787);
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+app.use((error, _req, res, next) => {
+  if (error instanceof SyntaxError && "body" in error) {
+    return res.status(400).json({
+      ok: false,
+      message: "Invalid request format. Please submit the form again.",
+    });
+  }
+
+  return next(error);
+});
 
 function toSafeText(value) {
   return String(value || "").trim();
@@ -43,8 +58,24 @@ function getTransporter() {
     host,
     port,
     secure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: { user, pass },
   });
+}
+
+function withTimeout(promise, milliseconds, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new Error(message);
+      error.code = "EMAIL_SEND_TIMEOUT";
+      reject(error);
+    }, milliseconds);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 app.get("/api/health", (_req, res) => {
@@ -74,7 +105,7 @@ app.post("/api/contact", async (req, res) => {
     const htmlOrganization = escapeHtml(organization);
     const htmlQuery = escapeHtml(query).replaceAll("\n", "<br/>");
 
-    await transporter.sendMail({
+    await withTimeout(transporter.sendMail({
       from: fromEmail,
       to: adminEmail,
       replyTo: email,
@@ -116,7 +147,7 @@ app.post("/api/contact", async (req, res) => {
           </div>
         </div>
       `,
-    });
+    }), 20000, "Email delivery timed out. Please try again shortly.");
 
     return res.status(200).json({ ok: true });
   } catch (error) {
@@ -126,6 +157,13 @@ app.post("/api/contact", async (req, res) => {
       return res.status(503).json({
         ok: false,
         message: "Email service is not configured. Please set SMTP_PASS in .env and restart the mail server.",
+      });
+    }
+
+    if (error?.code === "EMAIL_SEND_TIMEOUT") {
+      return res.status(504).json({
+        ok: false,
+        message: "Email delivery timed out. Please try again shortly.",
       });
     }
 
